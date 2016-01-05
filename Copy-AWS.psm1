@@ -109,7 +109,8 @@ http://the.earth.li/~sgtatham/putty/0.60/htmldoc/Chapter5.html
 
 function Get-Root([string] $CurrentPath, [string]$FolderName)
 {
-    Write-Verbose $CurrentPath   
+    $CurrentPath=Resolve-Path $CurrentPath
+    Write-Verbose "Current path is: $CurrentPath"   
 
     if(Test-Path $CurrentPath\$FolderName)
     {
@@ -120,11 +121,12 @@ function Get-Root([string] $CurrentPath, [string]$FolderName)
     if($CurrentPath -eq $driveRoot)
     {
         Write-Host "Path: $CurrentPath is the drive root: $driveRoot"
-        Write-Host "root path .pscp not found."
+        Write-Host "root path $FolderName not found."
         return 
     }
     
     $CurrentPath=([System.IO.Directory]::GetParent(($CurrentPath))).FullName
+    Write-Verbose "Change current to parent: $CurrentPath"
     Get-Root $CurrentPath $FolderName
     
 }
