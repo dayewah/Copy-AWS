@@ -27,7 +27,7 @@ function Copy-AWS
         { 
             $aws_info=Get-Content -Path "$root\aws_info.txt"|ConvertFrom-StringData
             $keypath= "$root\$($aws_info.keyfile)"
-            $host=$aws_info.dns
+            $host=$aws_info.host
         }
         
 
@@ -107,25 +107,25 @@ http://the.earth.li/~sgtatham/putty/0.60/htmldoc/Chapter5.html
 }
 
 
-function Get-Root([string] $path)
+function Get-Root([string] $CurrentPath, [string]$FolderName)
 {
-    Write-Verbose $path   
+    Write-Verbose $CurrentPath   
 
-    if(Get-ChildItem $path\*.aws)
+    if(Test-Path $CurrentPath\$FolderName)
     {
-        return "$path\.aws"
+        return "$CurrentPath\$FolderName"
     }
 
-    $root=[System.IO.Directory]::GetDirectoryRoot($path)
-    if($path -eq $root)
+    $driveRoot=[System.IO.Directory]::GetDirectoryRoot($CurrentPath)
+    if($CurrentPath -eq $driveRoot)
     {
-        Write-Host "Path name: $path is equal to root name: $root"
-        Write-Host "root path .aws not found."
+        Write-Host "Path: $CurrentPath is the drive root: $driveRoot"
+        Write-Host "root path .pscp not found."
         return 
     }
     
-    $path=([System.IO.Directory]::GetParent(($path))).FullName
-    Get-Root $path
+    $CurrentPath=([System.IO.Directory]::GetParent(($CurrentPath))).FullName
+    Get-Root $CurrentPath $FolderName
     
 }
 
