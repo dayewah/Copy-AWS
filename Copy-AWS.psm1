@@ -23,7 +23,12 @@ function Copy-AWS
     begin{
         $pscp="C:\Program Files (x86)\PuTTY\pscp.exe"
         $root=Get-Root -Path (pwd)        
-        if($root){ $aws_info=Get-Content -Path "$root\aws_info.txt"|ConvertFrom-StringData}
+        if($root)
+        { 
+            $aws_info=Get-Content -Path "$root\aws_info.txt"|ConvertFrom-StringData
+            $keypath= "$root\$($aws_info.keyfile)"
+            $host=$aws_info.dns
+        }
         
 
         if($Recurse){$r="-r"}
@@ -39,12 +44,12 @@ function Copy-AWS
                 if(!(Test-Path -Path $Destination) -and ($Destination -match "/"))
                 {
                     Write-Verbose "remote destination"                
-                    $command="& `"$pscp`" $r -i $($aws_info.keypath) $path ec2-user@$($aws_info.dns):$destination"
+                    $command="& `"$pscp`" $r -i $keypath $path ec2-user@$host:$destination"
                 }
                 else
                 {
                     Write-Verbose "local destination"
-                    $command="& `"$pscp`" $r -i $($aws_info.keypath) ec2-user@$($aws_info.dns):$path $destination"
+                    $command="& `"$pscp`" $r -i $keypath ec2-user@$host:$path $destination"
                 }
             
                 Write-Verbose $command            
