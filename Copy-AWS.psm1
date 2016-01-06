@@ -2,17 +2,15 @@
 function Copy-AWS
 {
     param(
-        [Parameter(
-            Position=0,
-            Mandatory=$True, 
-            ValueFromPipeline=$true,
-            ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Position=0,
+        Mandatory=$True, 
+        ValueFromPipeline=$true,
+        ValueFromPipelineByPropertyName=$true)]
         [Alias('FullName')]
         [string[]]$Source, 
 
-        [Parameter(
-            Position=1,
-            Mandatory=$True)]
+        [Parameter(Position=1,
+        Mandatory=$True)]
         [string]$Destination,
 
         [Parameter(Mandatory=$False)]
@@ -22,20 +20,29 @@ function Copy-AWS
 
     begin{
         $pscp="C:\Program Files (x86)\PuTTY\pscp.exe"
-        $root=Get-Root -Path (pwd)        
+        $root=Get-Root -FolderName .pscp    
         if($root)
         { 
-            $aws_info=Get-Content -Path "$root\aws_info.txt"|ConvertFrom-StringData
-            $keypath= "$root\$($aws_info.keyfile)"
-            $host=$aws_info.host
+            $info=(Get-Content -Path "$root\pscp_info.txt") -join "`r`n" |ConvertFrom-StringData
+            $keypath= if($info.keyfile){"-i $root\$($info.keyfile)"}
+            $user=$info.user
+            $password=if($info.password){"-pw $($info.password)"}
+            $_address=$info.address
+                       
         }
         
+        Write-Verbose "pscp: $pscp"
+        Write-Verbose "root: $root"
+        Write-Verbose "keypath: $keypath"
+        Write-Verbose "user: $user"
+        Write-Verbose "password: $password"
+        Write-Verbose "address: $_address"
 
         if($Recurse){$r="-r"}
     }
 
     process {
-        if($aws_info)
+        if($info)
         {
             foreach($path in $source)
             {
@@ -44,16 +51,16 @@ function Copy-AWS
                 if(!(Test-Path -Path $Destination) -and ($Destination -match "/"))
                 {
                     Write-Verbose "remote destination"                
-                    $command="& `"$pscp`" $r -i $keypath $path ec2-user@$host:$destination"
+                    $command="& `"$pscp`" $r $keypath $password $path $user@$_address: $destination"
                 }
                 else
                 {
                     Write-Verbose "local destination"
-                    $command="& `"$pscp`" $r -i $keypath ec2-user@$host:$path $destination"
+                    $command="& `"$pscp`" $r $keypath $password $user@$_address:$path $destination"
                 }
             
                 Write-Verbose $command            
-                Invoke-Expression $command
+                #Invoke-Expression $command
             }
         }
 
@@ -107,8 +114,18 @@ http://the.earth.li/~sgtatham/putty/0.60/htmldoc/Chapter5.html
 }
 
 
-function Get-Root([string] $CurrentPath, [string]$FolderName)
+function Get-Root
 {
+    param(        
+        [Parameter(Position=0,
+        Mandatory=$True)]
+        [string]$FolderName,
+        
+        [Parameter(
+        Mandatory=$False)]
+        [string]$CurrentPath="."
+    )
+    
     $CurrentPath=Resolve-Path $CurrentPath
     Write-Verbose "Current path is: $CurrentPath"   
 
@@ -127,8 +144,11 @@ function Get-Root([string] $CurrentPath, [string]$FolderName)
     
     $CurrentPath=([System.IO.Directory]::GetParent(($CurrentPath))).FullName
     Write-Verbose "Change current to parent: $CurrentPath"
-    Get-Root $CurrentPath $FolderName
-    
+    Get-Root -FolderName $FolderName -CurrentPath $CurrentPath
+<#
+.SYNOPSIS 
+Gets the path to a specified folder in the parent hierarchy of the current path.
+#>    
 }
 
 Write-Host "Imported Copy-AWS"
