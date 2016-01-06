@@ -87,7 +87,7 @@ function Copy-AWS
                 }
             
                 Write-Verbose $command            
-                #Invoke-Expression $command
+                Invoke-Expression $command
             }
         }
 
