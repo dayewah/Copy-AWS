@@ -37,9 +37,16 @@ function Copy-AWS
         { 
             $info=(Get-Content -Path "$root\pscp_info.txt") -join "`r`n" |ConvertFrom-StringData
 
-            $KeyFile=if(!$KeyFile){$info.keyfile}else{ (Resolve-Path $KeyFile).Path}
-            $KeyFile=if(!(Test-Path $KeyFile)){"`"$root\$($info.keyfile)`""}else{$KeyFile}
-            $KeyFile= if($info.keyfile){"-i `"$root\$($info.keyfile)`""}
+            if(!$KeyFile)
+            {
+                if($info.keyfile){$KeyFile="$root\$($info.keyfile)"}
+            }
+            else
+            {
+                $KeyFile=(Resolve-Path $KeyFile).Path
+            }
+            
+            $KeyFile= if($KeyFile){"-i `"$KeyFile`""}
 
             $Username=if(!$Username){$info.username}else{$Username}
 
