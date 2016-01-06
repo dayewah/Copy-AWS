@@ -14,6 +14,15 @@ function Copy-AWS
         [string]$Destination,
 
         [Parameter(Mandatory=$False)]
+        [string]$Username,
+
+        [Parameter(Mandatory=$False)]
+        [string]$Password,
+
+        [Parameter(Mandatory=$False)]
+        [string]$Address,
+
+        [Parameter(Mandatory=$False)]
         [switch]$Recurse
     
     )
@@ -24,19 +33,24 @@ function Copy-AWS
         if($root)
         { 
             $info=(Get-Content -Path "$root\pscp_info.txt") -join "`r`n" |ConvertFrom-StringData
-            $keypath= if($info.keyfile){"-i $root\$($info.keyfile)"}
-            $user=$info.user
-            $password=if($info.password){"-pw $($info.password)"}
-            $_address=$info.address
+            $keyfile= if($info.keyfile){"-i `"$root\$($info.keyfile)`""}
+
+            $Username=if(!$Username){$info.username}else{$Username}
+
+            $Password=if(!$Password){$info.password}else{$Password}
+            $Password=if($Password){"-pw $($Password)"}
+
+            $Address=if(!$Address){$info.address}else{$Address}
+
                        
-        }
+        }            
         
         Write-Verbose "pscp: $pscp"
         Write-Verbose "root: $root"
-        Write-Verbose "keypath: $keypath"
-        Write-Verbose "user: $user"
-        Write-Verbose "password: $password"
-        Write-Verbose "address: $_address"
+        Write-Verbose "keyfile: $keyfile"
+        Write-Verbose "username: $Username"
+        Write-Verbose "password: $Password"
+        Write-Verbose "address: $Address"
 
         if($Recurse){$r="-r"}
     }
@@ -51,12 +65,12 @@ function Copy-AWS
                 if(!(Test-Path -Path $Destination) -and ($Destination -match "/"))
                 {
                     Write-Verbose "remote destination"                
-                    $command="& `"$pscp`" $r $keypath $password $path $user@$_address: $destination"
+                    $command="& `"$pscp`" $r $keyfile $password $path $username@$($address):$destination"
                 }
                 else
                 {
                     Write-Verbose "local destination"
-                    $command="& `"$pscp`" $r $keypath $password $user@$_address:$path $destination"
+                    $command="& `"$pscp`" $r $keyfile $password $username@$($address):$path $destination"
                 }
             
                 Write-Verbose $command            

@@ -1,4 +1,4 @@
-keyfile=
-user=1102205
+keyfile=my_key.ppk
+username=1102205
 password=rsp1102205
 address=cae
