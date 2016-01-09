@@ -26,7 +26,13 @@ function Copy-AWS
         [string]$Address,
 
         [Parameter(Mandatory=$False)]
-        [switch]$Recurse
+        [switch]$Recurse,
+        
+        [Parameter(Mandatory=$False)]
+        [switch]$Persist,
+        
+        [Parameter(Mandatory=$False)]
+        [switch]$WhatIf
     
     )
 
@@ -46,32 +52,33 @@ function Copy-AWS
                 $KeyFile=(Resolve-Path $KeyFile).Path
             }
             
-            $KeyFile= if($KeyFile){"-i `"$KeyFile`""}
 
             $Username=if(!$Username){$info.username}else{$Username}
 
             $Password=if(!$Password){$info.password}else{$Password}
-            $Password=if($Password){"-pw $($Password)"}
 
             $Address=if(!$Address){$info.address}else{$Address}
-
-                       
         }            
+        
+        $KeyFile= if($KeyFile){"-i  `"$KeyFile`""}
+        $Password=if($Password){"-pw $($Password)"}
+        
         
         Write-Verbose "pscp: $pscp"
         Write-Verbose "root: $root"
-        Write-Verbose "keyfile: $keyfile"
         Write-Verbose "username: $Username"
-        Write-Verbose "password: $Password"
         Write-Verbose "address: $Address"
-
+        Write-Verbose "keyfile: $KeyFile"
+        Write-Verbose "password: $Password"
+        
+        $CanRun=$source -and $destination -and $Username -and $Address
         if($Recurse){$r="-r"}
     }
 
     process {
-        if($info)
+        if($CanRun)
         {
-            foreach($path in $source)
+            foreach($path in $Source)
             {
                 $name=$path -split "[\\/]"| Select-Object -Last 1
 
@@ -85,16 +92,51 @@ function Copy-AWS
                     Write-Verbose "local destination"
                     $command="& `"$pscp`" $r $keyfile $password $username@$($address):$path $destination"
                 }
-            
-                Write-Verbose $command            
-                Invoke-Expression $command
+                
+                if($WhatIf)
+                {
+                    Write-Host "Executes: $command"            
+                }
+                else
+                {
+                    Write-Verbose $command            
+                    Invoke-Expression $command
+                }
             }
+        }
+        else
+        {
+            Write-Host "Missing Variable(s):"  
+            Write-Host "username: $Username"
+            Write-Host "address: $Address"  
         }
 
     }
 
     end{
-
+        if($CanRun -and $Persist)
+        {
+            #implement logic to write out variables to .pscp file
+            New-Item -Path .pscp -ItemType dir -Force
+            
+            if($Password){$Password=$Password.Replace("-pw ","")}
+            
+            if($KeyFile)
+            {
+                $KeyFile=$KeyFile.Replace("-i  ","")
+                Copy-Item -Path $KeyFile -Destination .pscp 
+                $KeyFile=(Get-ChildItem $KeyFile).Name
+            }
+            
+            $file=@"
+username=$Username
+address=$Address            
+keyfile=$KeyFile
+password=$Password
+"@
+            
+            New-Item -Path .pscp\pscp_info.txt -ItemType file -Value $file -Force
+        }
     }
 
 <#
@@ -164,8 +206,8 @@ function Get-Root
     $driveRoot=[System.IO.Directory]::GetDirectoryRoot($CurrentPath)
     if($CurrentPath -eq $driveRoot)
     {
-        Write-Host "Path: $CurrentPath is the drive root: $driveRoot"
-        Write-Host "root path $FolderName not found."
+        Write-Verbose "Path: $CurrentPath is the drive root: $driveRoot"
+        Write-Verbose "root path $FolderName not found."
         return 
     }
     
